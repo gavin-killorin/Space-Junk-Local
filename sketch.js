@@ -8,6 +8,7 @@ let score = 0;
 let delivered = 0;
 let junkCount = 8;
 let catchTime = 500;
+let dropoffTime = 1000;
 
 function setup() {
   createCanvas(800, 500);
@@ -65,23 +66,34 @@ function draw() {
     }
   }
 
-  // Keep captured junk behind Magpie
-  if (magpie.carrying !== null) {
-    magpie.carrying.x = magpie.x - sin(magpie.rotation) * 55;
-    magpie.carrying.y = magpie.y + cos(magpie.rotation) * 55;
+  // Keep captured junk behind Magpie 
+if (magpie.carrying !== null) {
+  let cargo = magpie.carrying;
 
-    // Check if Magpie reached the Mothership
-    let distance = dist(
-      magpie.x, magpie.y,
-      mothership.x, mothership.y
-    );
+  cargo.x = magpie.x - sin(magpie.rotation) * 55;
+  cargo.y = magpie.y + cos(magpie.rotation) * 55;
 
-    if (distance < mothership.pickupRadius) {
-      magpie.carrying = null;
-      delivered++;
-      score += 100;
-    }
+  // Check distance from junk to Mothership
+  let distance = dist(
+    cargo.x, cargo.y,
+    mothership.x, mothership.y
+  );
+
+  // Increase timer when inside pickup circle
+  if (distance < mothership.pickupRadius) {
+    cargo.dropoffTime += delta;
+  } else {
+    // Slowly decrease timer when outside
+    cargo.dropoffTime = max(0, cargo.dropoffTime - delta);
   }
+
+  // Deliver junk after staying inside for 1 second
+  if (cargo.dropoffTime > dropoffTime) {
+    magpie.carrying = null;
+    delivered++;
+    score += 100;
+  }
+}
 
   // Draw Mothership
   mothership.draw();
@@ -298,6 +310,7 @@ class Junk {
     this.dx = random(-15, 15);
     this.dy = random(-15, 15);
     this.beamTime = 0;
+    this.dropoffTime = 0;
   }
 
   move(time) {
