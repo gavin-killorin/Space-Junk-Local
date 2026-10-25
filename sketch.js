@@ -9,6 +9,9 @@ let delivered = 0;
 let junkCount = 8;
 let catchTime = 500;
 let dropoffTime = 1000;
+let levelTime = 120000;
+let timeLeft = levelTime;
+let lives = 3;
 
 function setup() {
   createCanvas(800, 500);
@@ -26,7 +29,11 @@ function draw() {
 
   let delta = min(deltaTime, 50);
   let time = delta / 1000;
-
+// Phase 5: Countdown timer
+if (delivered < junkCount) {
+  timeLeft -= delta;
+  timeLeft = max(0, timeLeft);
+}
   handleControls(time);
 
   magpie.move(time);
@@ -111,17 +118,45 @@ if (magpie.carrying !== null) {
   // Draw player
   magpie.draw();
 
-  // Game information
+// Phase 5: HUD
+drawHUD();
+// Phase 5: Draw timer, score, and spare lives
+function drawHUD() {
+  let clock = timeToStringParts(timeLeft);
+
+  push();
   noStroke();
   fill(255);
-  textAlign(LEFT);
   textSize(18);
 
-  text("Score: " + score, 15, 30);
+  // Timer: top left
+  textAlign(LEFT);
+  text(clock.minutes + ":" + clock.seconds, 15, 30);
+
+  // Score: top right
+  textAlign(RIGHT);
+  text("Score: " + score, width - 15, 30);
+
+  // Delivered counter
+  textAlign(LEFT);
+  textSize(15);
   text("Delivered: " + delivered + "/" + junkCount, 15, 55);
 
+  // Controls
   textSize(13);
   text("WASD = Move    SPACE = Tractor Beam", 15, height - 15);
+
+  pop();
+
+  // Two spare Magpies in the bottom left
+  for (let i = 0; i < lives - 1; i++) {
+    push();
+    translate(30 + i * 35, height - 65);
+    scale(0.4);
+    Magpie.drawMagpie();
+    pop();
+  }
+}
 
   if (magpie.carrying !== null) {
     fill("#70eef5");
@@ -136,7 +171,15 @@ if (magpie.carrying !== null) {
     text("All clear!", width / 2, height / 2 - 80);
   }
 }
+// Phase 5: Convert milliseconds to minutes and seconds
+function timeToStringParts(ms) {
+  let totalSeconds = Math.ceil(max(0, ms) / 1000);
 
+  let minutes = Math.floor(totalSeconds / 60).toString();
+  let seconds = (totalSeconds % 60).toString().padStart(2, "0");
+
+  return { minutes, seconds };
+}
 // Keyboard controls
 function handleControls(time) {
   if (keys[87] || keyIsDown(87)) {
@@ -224,35 +267,60 @@ class Magpie {
     return abs(localX) <= allowedWidth;
   }
 
-  draw() {
+  
+draw() {
+  push();
+  translate(this.x, this.y);
+
+  // Draw captured junk underneath the Magpie
+  if (this.carrying !== null) {
     push();
-    translate(this.x, this.y);
     rotate(this.rotation);
-    rectMode(CENTER);
+    translate(0, 55);
     noStroke();
-
-    // Tractor beam
-    if (this.beam) {
-      fill(245, 243, 112, 65);
-      triangle(0, 0, -45, 150, 45, 150);
-    }
-
-    // Main body
-    fill("#525d80");
-    rect(0, 0, 42, 60, 10);
-
-    // Platform
-    fill("#959ebb");
-    rect(0, 31, 55, 5);
-
-    // Window
-    fill("#70eef5");
-    stroke(0);
-    strokeWeight(2);
-    rect(16, -8, 15, 18, 4);
-
+    fill("#a0936a");
+    circle(0, 0, 20);
     pop();
   }
+
+  rotate(this.rotation);
+
+  // Draw tractor beam
+  if (this.beam) {
+    noStroke();
+    fill(245, 243, 112, 65);
+    triangle(0, 0, -45, 150, 45, 150);
+  }
+
+  // Draw spaceship
+  Magpie.drawMagpie();
+
+  pop();
+}
+
+// Draw spaceship (also used for spare lives)
+static drawMagpie() {
+  push();
+  rectMode(CENTER);
+  noStroke();
+
+  // Main body
+  fill("#525d80");
+  rect(0, 0, 42, 60, 10);
+
+  // Platform
+  fill("#959ebb");
+  rect(0, 31, 55, 5);
+
+  // Window
+  fill("#70eef5");
+  stroke(0);
+  strokeWeight(2);
+  rect(16, -8, 15, 18, 4);
+
+  pop();
+}
+
 }
 
 // Mothership
